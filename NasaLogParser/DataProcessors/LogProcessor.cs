@@ -22,18 +22,25 @@ public class LogProcessor : ILogProcessor
 
     private async Task<string> GetCountryCode(string logRecordIp, CancellationToken cancellationToken)
     {
-        if (IPAddress.TryParse(logRecordIp, out var ip))
+        try
         {
-            try
+            if (IPAddress.TryParse(logRecordIp, out var ip))
             {
                 return await new IpCountryCodeProvider().GetCountryCode(ip.ToString(), cancellationToken);
             }
-            catch (Exception ex)
+            
+            var ipAddresses = await Dns.GetHostAddressesAsync(logRecordIp, cancellationToken);
+            if (ipAddresses.Length > 0)
             {
-                throw new Exception(ex.Message);
+                return await new IpCountryCodeProvider().GetCountryCode(ipAddresses[0].ToString(), cancellationToken);   
             }
-        }
 
-        return await new DomainCountryCodeProvider().GetCountryCode(logRecordIp, cancellationToken);
+            Console.WriteLine("No IP addresses found for the domain.");
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Exception message: {ex.Message}\nIp: {logRecordIp}");
+        }
     }
 }

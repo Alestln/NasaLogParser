@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="IPinfo" Version="3.0.0" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0-preview.3" />
     </ItemGroup>
 
 </Project>

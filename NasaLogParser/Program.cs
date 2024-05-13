@@ -1,6 +1,9 @@
-﻿using NasaLogParser.DataProcessors;
+﻿using System.Diagnostics;
+using NasaLogParser.Contexts;
+using NasaLogParser.DataProcessors;
 using NasaLogParser.Parsers;
 using NasaLogParser.Providers;
+using NasaLogParser.Services;
 
 namespace NasaLogParser;
 
@@ -19,20 +22,36 @@ class Program
         ILogRecordParser parser = new LogRecordParser();
         ILogProcessor processor = new LogProcessor();
 
-        var logRecord = await provider.GetLogRecordAsync(source.Token);
-        //logRecord = await provider.GetLogRecordAsync(source.Token);
+        await using var dbContext = new NasaLogDbContext();
 
-        if (logRecord is not null)
+        var saveLogRecordsService = new SaveLogRecords(dbContext);
+        
+        // Ensure the database is created and apply any pending migrations
+        await dbContext.Database.EnsureCreatedAsync(source.Token);
+
+        Stopwatch stopwatch = new Stopwatch();
+        stopwatch.Start();
+        
+        var logRecord = await provider.GetLogRecordAsync(source.Token);
+        
+        while (logRecord is not null)
         {
             try
             {
-                var logRecordDto = parser.Parse(logRecord);
-                var logRecordData = await processor.ProcessAsync(logRecordDto, source.Token);
+                var logRecordData = await processor.ProcessAsync(parser.Parse(logRecord), source.Token);
+
+                await saveLogRecordsService.SaveAsync(logRecordData, source.Token);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
+            
+            logRecord = await provider.GetLogRecordAsync(source.Token);
         }
+        
+        stopwatch.Stop();
+
+        Console.WriteLine($"Time parsing: {stopwatch.ElapsedMilliseconds}");
     }
 }

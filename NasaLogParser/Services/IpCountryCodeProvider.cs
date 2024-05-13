@@ -13,8 +13,7 @@ public class IpCountryCodeProvider : ICountryCodeProvider
             var response = await _httpClient.GetAsync($"http://ip-api.com/json/{ip}", cancellationToken);
             response.EnsureSuccessStatusCode();
             
-            //return ParseCountryCodeFromJson(await response.Content.ReadAsStringAsync(cancellationToken));
-            return ParseCountryCodeFromJson("{\"name\":\"John\", \"age\":30, \"car\":null}");
+            return ParseCountryCodeFromJson(await response.Content.ReadAsStringAsync(cancellationToken));
         }
         catch (HttpRequestException ex)
         {
@@ -22,7 +21,7 @@ public class IpCountryCodeProvider : ICountryCodeProvider
         }
         catch (NullReferenceException ex)
         {
-            throw new Exception($"{ex.Message} Ip: {ip}");
+            throw new Exception($"{ex.Message}");
         }
     }
     
